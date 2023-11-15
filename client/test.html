@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Recorder</title>
+</head>
+<body>
+    <div>
+        <button id="startRecord">Start Recording</button>
+        <button id="stopRecord" disabled>Stop Recording</button>
+    </div>
+    <video id="videoPreview" width="640" height="480" controls></video>
+
+    <script>
+        let stream;
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        const startRecordButton = document.getElementById('startRecord');
+        const stopRecordButton = document.getElementById('stopRecord');
+        const videoPreview = document.getElementById('videoPreview');
+
+        startRecordButton.addEventListener('click', startRecording);
+        stopRecordButton.addEventListener('click', stopRecording);
+
+        async function startRecording() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    videoPreview.src = url;
+                };
+
+                mediaRecorder.start();
+
+                startRecordButton.disabled = true;
+                stopRecordButton.disabled = false;
+
+                setTimeout(stopRecording, 5000); // Stop recording after 5 seconds
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+            }
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(track => track.stop());
+
+            startRecordButton.disabled = false;
+            stopRecordButton.disabled = true;
+
+            recordedChunks = [];
+        }
+    </script>
+</body>
+</html>
